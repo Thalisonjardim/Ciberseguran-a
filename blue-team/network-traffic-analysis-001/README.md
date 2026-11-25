@@ -24,6 +24,8 @@ The capture was collected by the author and the initial analysis and documentati
 
 At the network layer, 240 frames carried IPv6 and 62 carried IPv4; the remaining 24 were ARP. These counts describe different protocol layers and should not be added together.
 
+The unfiltered Wireshark Protocol Hierarchy additionally identifies 22 QUIC frames, 65 TLS frames, 27 DNS frames and 7 mDNS frames. Total captured frame bytes: 93,606.
+
 ## Methodology
 
 1. Inspect Statistics > Protocol Hierarchy, Endpoints and Conversations.
@@ -56,7 +58,7 @@ Frame 100 contains:
 | IPv4 answer 1 | 104.18.32.47 |
 | IPv4 answer 2 | 172.64.155.209 |
 
-The DNS transport itself used IPv6. An IPv6 DNS transport can resolve IPv4 addresses.
+The Wireshark DNS screenshot links response frame 100 to request frame 90 and reports a response time of 5.436 ms. The DNS transport itself used IPv6. An IPv6 DNS transport can resolve IPv4 addresses.
 
 Filter: `dns.qry.name == "chatgpt.com" && dns.flags.response == 1 && dns.qry.type == 1`.
 
@@ -66,7 +68,7 @@ To inspect possible subsequent traffic: `ip.addr == 104.18.32.47 || ip.addr == 1
 
 ### 3. TCP connection establishment
 
-Frames 1, 3 and 4 contain a SYN, SYN-ACK and ACK sequence between client port 63042 and remote port 443. The initial exchange also includes ECN negotiation flags.
+Frames 1, 3 and 4 contain a SYN, SYN-ACK and ACK sequence between client port 63042 and remote port 443. The initial exchange also includes ECN negotiation flags. The ACK in frame 4 occurs at 0.084723 s. Frame 6 shows a TLS Client Hello with an iCloud service hostname. This stream is not evidence of a ChatGPT connection. Frames 10 and 11 are flagged as previous segment not captured and out-of-order respectively; these flags alone do not establish malicious activity.
 
 Filter: `tcp.port == 63042`.
 
@@ -87,6 +89,10 @@ Filters: `udp.port == 443`, `quic`, `udp.port == 5353`.
 Frame 104 contains ICMPv6 Type 1, Code 4 (Destination Unreachable / Port Unreachable), following a DNS response. A closed UDP socket is a plausible explanation, not a confirmed root cause.
 
 Filter: `icmpv6.type == 1 && icmpv6.code == 4`.
+
+## Manual evidence validation
+
+Six screenshots were collected in Wireshark: unfiltered protocol hierarchy, DNS response, TCP handshake, ARP, mDNS and frame 104. Screenshots were redacted offline to remove network identifiers and raw packet bytes. The image files are pending upload. The frame 104 screenshot shows the protocol stack and ICMP error coloring rule; a further screenshot expanding ICMPv6 Type and Code would make the error evidence clearer.
 
 ## SOC triage conclusion
 
